@@ -1,5 +1,14 @@
 # mirza_vali — Changelog
 
+## v1.3.2 (2026-08-02)
+
+### Interactive one-line install
+- Use `install.sh` as the entry point (not raw `manage.sh` via pipe)
+- Clones into `/opt/mirza_vali-src`, cds there, opens menu with real TTY
+- Pressing 1 starts Install; menu input works after curl|bash
+- `manage.sh` auto re-execs from disk if started with a piped stdin
+
+
 ## v1.3.1 (2026-08-02)
 
 ### English-only terminal UI
@@ -16,6 +25,15 @@
 - فایل `install.sh` به‌عنوان میانبر همان کار را انجام می‌دهد
 
 # mirza_vali — Changelog
+
+## v1.3.2 (2026-08-02)
+
+### Interactive one-line install
+- Use `install.sh` as the entry point (not raw `manage.sh` via pipe)
+- Clones into `/opt/mirza_vali-src`, cds there, opens menu with real TTY
+- Pressing 1 starts Install; menu input works after curl|bash
+- `manage.sh` auto re-execs from disk if started with a piped stdin
+
 
 ## v1.3.1 (2026-08-02)
 

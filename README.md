@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| نسخه فعلی | **v1.3.1** |
+| نسخه فعلی | **v1.3.2** |
 | مسیر نصب پیش‌فرض | `/var/www/mirza_vali` |
 | پلتفرم‌ها | Telegram + Bale |
 
@@ -15,7 +15,7 @@
 روی سرور، در **هر مسیری** که هستید فقط این را بزنید:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/silent4time/mirza_vali/main/manage.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/silent4time/mirza_vali/main/install.sh | sudo bash
 ```
 
 اسکریپت خودش آخرین نسخه را از گیت‌هاب می‌گیرد، منوی مدیریت را باز می‌کند.
@@ -24,7 +24,7 @@ curl -sL https://raw.githubusercontent.com/silent4time/mirza_vali/main/manage.sh
 نصب مستقیم بدون منو:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/silent4time/mirza_vali/main/manage.sh | sudo bash -s install
+curl -fsSL https://raw.githubusercontent.com/silent4time/mirza_vali/main/install.sh | sudo bash -s install
 ```
 
 روش اختیاری (کلون دستی):

@@ -6,10 +6,10 @@
 #  اجرا:
 #    sudo bash manage.sh
 #
-#  نصب یک‌خطی از هر مسیر (بدون ورود به پوشه):
-#    curl -sL https://raw.githubusercontent.com/silent4time/mirza_vali/main/manage.sh | sudo bash
-#  یا:
-#    sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/silent4time/mirza_vali/main/manage.sh)"
+#  One-line install (from any directory, interactive menu works):
+#    curl -fsSL https://raw.githubusercontent.com/silent4time/mirza_vali/main/install.sh | sudo bash
+#  Or:
+#    sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/silent4time/mirza_vali/main/install.sh)"
 # ============================================================================
 set -euo pipefail
 
@@ -116,14 +116,16 @@ ask_yn() {
 _bootstrap_source() {
   local candidate=""
   if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
-    candidate="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    candidate="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || true)"
   fi
   if [[ -n "$candidate" && -d "${candidate}/patch" && -f "${candidate}/patch/botapi.php" ]]; then
     SCRIPT_DIR="$candidate"
     HAS_LOCAL_PATCH="true"
+    cd "$SCRIPT_DIR" || true
     return 0
   fi
-  # اجرای یک‌خطی از اینترنت: کلون موقت آخرین نسخه
+
+  # No local patch tree: clone latest from GitHub into a fixed folder
   HAS_LOCAL_PATCH="false"
   local cache="/opt/${PROJECT_NAME}-src"
   info "Downloading latest version from GitHub..."
@@ -136,10 +138,45 @@ _bootstrap_source() {
       HAS_LOCAL_PATCH="true"
     fi
     ok "Source ready: $cache"
+    cd "$SCRIPT_DIR" || true
   else
     err "GitHub clone failed: $GITHUB_REPO"
     err "Make sure the repo is public or you have access."
     exit 1
+  fi
+}
+
+# If this process was started via "curl | bash", stdin is the script pipe
+# and the menu cannot read key presses. Re-exec from a real file on a TTY.
+_reexec_if_piped() {
+  # Already marked as re-exec'd
+  if [[ "${MIRZA_REEXEC:-}" == "1" ]]; then
+    return 0
+  fi
+  # stdin is a terminal? OK
+  if [[ -t 0 ]]; then
+    return 0
+  fi
+  # Prefer the cloned/local manage.sh on disk
+  local target="${SCRIPT_DIR}/manage.sh"
+  if [[ ! -f "$target" ]]; then
+    target="/opt/${PROJECT_NAME}-src/manage.sh"
+  fi
+  if [[ ! -f "$target" ]]; then
+    # Last resort: save ourselves to /tmp
+    target="/tmp/${PROJECT_NAME}-manage.sh"
+    if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
+      cp -f "${BASH_SOURCE[0]}" "$target"
+    else
+      curl -fsSL "https://raw.githubusercontent.com/silent4time/mirza_vali/main/manage.sh" -o "$target" || true
+    fi
+  fi
+  if [[ -f "$target" ]]; then
+    chmod +x "$target"
+    info "Switching to interactive mode (menu input enabled)..."
+    cd "$(dirname "$target")" 2>/dev/null || true
+    export MIRZA_REEXEC=1
+    exec sudo -E env MIRZA_REEXEC=1 bash "$target" "$@"
   fi
 }
 
@@ -885,8 +922,9 @@ do_status() {
 main() {
   need_root
   _bootstrap_source
+  _reexec_if_piped "$@"
 
-  # اگر آرگومان مستقیم داده شده باشد
+  # Direct arguments (non-interactive flags still work after re-exec)
   case "${1:-}" in
     install) do_install; exit 0 ;;
     update)  do_update;  exit 0 ;;
