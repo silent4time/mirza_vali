@@ -39,7 +39,7 @@ info() { echo -e "${CYAN}[i]${NC} $*"; }
 
 need_root() {
   if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
-    err "این اسکریپت باید با دسترسی root اجرا شود:"
+    err "This script must be run as root:"
     echo "  sudo bash $0"
     exit 1
   fi
@@ -85,12 +85,12 @@ INSTALLED_VERSION="$(version_of "${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}" 2>/dev/nu
 INSTALLED_AT="$(date -Is)"
 EOF
   chmod 600 "$STATE_FILE"
-  ok "وضعیت نصب ذخیره شد: $STATE_FILE"
+  ok "Install state saved: $STATE_FILE"
 }
 
 pause() {
   echo ""
-  read -rp "Enter بزنید تا به منو برگردید... " _
+  read -rp "Press Enter to return to menu... " _
 }
 
 ask() {
@@ -106,7 +106,7 @@ ask() {
 
 ask_yn() {
   local prompt="$1" default="${2:-y}" var
-  read -rp "$prompt [y/n] (پیش‌فرض: $default): " var
+  read -rp "$prompt [y/n] (default: $default): " var
   var="${var:-$default}"
   [[ "$var" =~ ^[YyیY] ]] && echo "true" || echo "false"
 }
@@ -126,7 +126,7 @@ _bootstrap_source() {
   # اجرای یک‌خطی از اینترنت: کلون موقت آخرین نسخه
   HAS_LOCAL_PATCH="false"
   local cache="/opt/${PROJECT_NAME}-src"
-  info "دانلود آخرین نسخه از GitHub (نیازی به ورود به پوشه نیست)..."
+  info "Downloading latest version from GitHub..."
   command -v git >/dev/null 2>&1 || { apt-get update -y >/dev/null 2>&1; apt-get install -y git >/dev/null 2>&1; }
   rm -rf "$cache"
   mkdir -p /opt
@@ -135,10 +135,10 @@ _bootstrap_source() {
     if [[ -d "${cache}/patch" ]]; then
       HAS_LOCAL_PATCH="true"
     fi
-    ok "منبع آماده شد: $cache"
+    ok "Source ready: $cache"
   else
-    err "کلون از گیت‌هاب ناموفق: $GITHUB_REPO"
-    err "مطمئن شوید ریپو public است یا توکن دسترسی دارید."
+    err "GitHub clone failed: $GITHUB_REPO"
+    err "Make sure the repo is public or you have access."
     exit 1
   fi
 }
@@ -154,12 +154,14 @@ show_banner() {
   local ver
   ver="$(version_of "$SCRIPT_DIR")"
   echo -e "${BOLD}${CYAN}"
-  echo "+----------------------------------------------------------+"
-  echo "|                                                          |"
-  echo "|              mirza_vali  -  Management Panel             |"
-  echo "|                  Telegram  +  Bale                       |"
-  echo "|                                                          |"
-  echo "+----------------------------------------------------------+"
+  cat << EOF
++==========================================================+
+|                                                          |
+|              mirza_vali  -  Management Panel             |
+|                   Telegram  +  Bale                      |
+|                                                          |
++==========================================================+
+EOF
   echo -e "${NC}"
   echo -e "  Version : ${BOLD}v${ver}${NC}"
   if [[ -f "$STATE_FILE" ]]; then
@@ -172,15 +174,15 @@ show_banner() {
 }
 
 show_menu() {
-  echo -e "${BOLD}  منوی مدیریت:${NC}"
-  echo "  ─────────────────────────────────────"
-  echo "   1)  نصب (Install)"
-  echo "   2)  آپدیت (Update)"
-  echo "   3)  ریست (Reset) — وبهوک / سرویس / تنظیمات پایه"
-  echo "   4)  حذف کامل (Remove)"
-  echo "   5)  وضعیت سیستم (Status)"
-  echo "   0)  خروج"
-  echo "  ─────────────────────────────────────"
+  echo -e "${BOLD}  Main Menu:${NC}"
+  echo "  -------------------------------------"
+  echo "   1)  Install"
+  echo "   2)  Update"
+  echo "   3)  Reset (webhooks / tunnel / user steps)"
+  echo "   4)  Remove (full uninstall)"
+  echo "   5)  Status"
+  echo "   0)  Exit"
+  echo "  -------------------------------------"
   echo ""
 }
 
@@ -189,48 +191,48 @@ show_menu() {
 # ===========================================================================
 do_install() {
   echo ""
-  echo -e "${BOLD}═══ نصب mirza_vali ═══${NC}"
+  echo -e "${BOLD}=== Install mirza_vali ===${NC}"
   echo ""
 
   if [[ -f "$STATE_FILE" ]]; then
-    warn "به نظر می‌رسد قبلاً نصب شده است."
+    warn "An existing installation was found."
     local cont
-    cont="$(ask_yn 'ادامه و نصب روی مسیر جدید/بازنویسی؟' 'n')"
+    cont="$(ask_yn 'Continue and overwrite/install again?' 'n')"
     [[ "$cont" != "true" ]] && return 0
   fi
 
-  INSTALL_DIR="$(ask 'مسیر نصب' "$DEFAULT_INSTALL_DIR")"
+  INSTALL_DIR="$(ask 'Install path' "$DEFAULT_INSTALL_DIR")"
   if [[ "$(basename "$INSTALL_DIR")" != "$PROJECT_NAME" ]]; then
     INSTALL_DIR="${INSTALL_DIR%/}/$PROJECT_NAME"
-    info "مسیر تنظیم شد به: $INSTALL_DIR"
+    info "Install path set to: $INSTALL_DIR"
   fi
 
-  DB_NAME="$(ask 'نام دیتابیس' 'mirza_vali')"
-  DB_USER="$(ask 'یوزر دیتابیس' 'mirzavali')"
+  DB_NAME="$(ask 'Database name' 'mirza_vali')"
+  DB_USER="$(ask 'Database user' 'mirzavali')"
   if [[ -z "${DB_PASS:-}" ]]; then
     DB_PASS="$(openssl rand -hex 12)"
-    ok "رمز دیتابیس تولید شد: $DB_PASS  (یادداشت کنید)"
+    ok "Database password generated: $DB_PASS  (save it!)"
   else
-    DB_PASS="$(ask 'رمز دیتابیس' "$DB_PASS")"
+    DB_PASS="$(ask 'Database password' "$DB_PASS")"
   fi
 
-  ENABLE_TELEGRAM="$(ask_yn 'فعال‌سازی ربات تلگرام؟' 'y')"
+  ENABLE_TELEGRAM="$(ask_yn 'Enable Telegram bot?' 'y')"
   if [[ "$ENABLE_TELEGRAM" == "true" ]]; then
-    TELEGRAM_TOKEN="$(ask 'توکن تلگرام (BotFather)')"
-    TELEGRAM_USERNAME="$(ask 'یوزرنیم ربات تلگرام (بدون @)')"
-    ADMIN_ID="$(ask 'آیدی عددی ادمین تلگرام')"
+    TELEGRAM_TOKEN="$(ask 'Telegram bot token (BotFather)')"
+    TELEGRAM_USERNAME="$(ask 'Telegram bot username (without @)')"
+    ADMIN_ID="$(ask 'Admin numeric ID (Telegram)')"
   else
     TELEGRAM_TOKEN="disabled"
     TELEGRAM_USERNAME="disabled"
-    ADMIN_ID="$(ask 'آیدی عددی ادمین (برای دسترسی پنل)')"
+    ADMIN_ID="$(ask 'Admin numeric ID (panel access)')"
   fi
 
-  ENABLE_BALE="$(ask_yn 'فعال‌سازی ربات بله؟' 'y')"
+  ENABLE_BALE="$(ask_yn 'Enable Bale bot?' 'y')"
   if [[ "$ENABLE_BALE" == "true" ]]; then
-    BALE_TOKEN="$(ask 'توکن بله (my.bale.ai)')"
-    BALE_ADMIN_ID="$(ask 'آیدی عددی ادمین بله (اختیاری)' '')"
-    BALE_REPORT_GROUP_ID="$(ask 'آیدی گروه گزارش بله (اختیاری)' '')"
-    BALE_PROVIDER_TOKEN="$(ask 'توکن پرداخت بله‌پی (اختیاری)' '')"
+    BALE_TOKEN="$(ask 'Bale bot token (my.bale.ai)')"
+    BALE_ADMIN_ID="$(ask 'Bale admin numeric ID (optional)' '')"
+    BALE_REPORT_GROUP_ID="$(ask 'Bale report group ID (optional)' '')"
+    BALE_PROVIDER_TOKEN="$(ask 'Bale Pay provider token (optional)' '')"
   else
     BALE_TOKEN="disabled"
     BALE_ADMIN_ID=""
@@ -241,28 +243,28 @@ do_install() {
   WEBHOOK_SECRET="$(openssl rand -hex 16)"
 
   echo ""
-  echo "دسترسی اینترنت:"
-  echo "  1) دامنه + SSL خودم"
-  echo "  2) تونل موقت Cloudflare (تست)"
-  DOMAIN_MODE="$(ask 'کدام؟ (1 یا 2)' '2')"
+  echo "Internet access:"
+  echo "  1) My own domain + SSL"
+  echo "  2) Temporary Cloudflare tunnel (testing)"
+  DOMAIN_MODE="$(ask 'Choose (1 or 2)' '2')"
   DOMAIN=""
   if [[ "$DOMAIN_MODE" == "1" ]]; then
-    DOMAIN="$(ask 'دامنه (بدون https://)')"
+    DOMAIN="$(ask 'Domain (without https://)')"
   fi
 
   echo ""
-  info "شروع نصب..."
+  info "Starting installation..."
 
   # --- پکیج‌ها ---
-  info "نصب پیش‌نیازها (nginx, mariadb, php)..."
+  info "Installing packages (nginx, mariadb, php)..."
   export DEBIAN_FRONTEND=noninteractive
-  apt-get update -y >/dev/null 2>&1 || warn "apt-get update خطا داشت، ادامه..."
+  apt-get update -y >/dev/null 2>&1 || warn "apt-get update had an error, continuing..."
   apt-get install -y nginx mariadb-server php php-fpm php-mysql php-curl \
     php-mbstring php-gd php-xml php-zip unzip git curl openssl >/dev/null
   if ! command -v composer >/dev/null 2>&1; then
     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer >/dev/null 2>&1 || true
   fi
-  ok "پکیج‌ها نصب شدند."
+  ok "Packages installed."
 
   PHP_VERSION="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true)"
   if [[ -z "$PHP_VERSION" ]]; then
@@ -273,52 +275,52 @@ do_install() {
   systemctl enable --now "php${PHP_VERSION}-fpm" >/dev/null 2>&1 || true
 
   # --- دیتابیس ---
-  info "ساخت دیتابیس..."
+  info "Creating database..."
   mysql -uroot -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
   mysql -uroot -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';" 2>/dev/null || true
   mysql -uroot -e "ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
   mysql -uroot -e "GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost'; FLUSH PRIVILEGES;"
-  ok "دیتابیس آماده است."
+  ok "Database ready."
 
   # --- سورس پایه میرزا ---
   if [[ -d "$INSTALL_DIR" ]]; then
-    warn "پوشه قبلی وجود دارد — بک‌آپ گرفته می‌شود..."
+    warn "Existing folder found — creating backup..."
     mv "$INSTALL_DIR" "${INSTALL_DIR}-backup-$(date +%Y%m%d%H%M%S)"
   fi
   mkdir -p "$(dirname "$INSTALL_DIR")"
-  info "دانلود سورس پایه mirzabot از GitHub..."
+  info "Downloading base mirzabot source from GitHub..."
   git clone --quiet https://github.com/mahdiMGF2/mirzabot.git "$INSTALL_DIR"
   PATCH_BASE_COMMIT="fcd9afeb0e80b67db21cc21611dc91a07c0feee0"
-  (cd "$INSTALL_DIR" && git checkout --quiet "$PATCH_BASE_COMMIT") || warn "checkout به کامیت پین‌شده ممکن نشد"
-  ok "سورس پایه آماده شد."
+  (cd "$INSTALL_DIR" && git checkout --quiet "$PATCH_BASE_COMMIT") || warn "Could not checkout pinned commit"
+  ok "Base source ready."
 
   if [[ -f "$INSTALL_DIR/composer.json" && ! -d "$INSTALL_DIR/vendor" ]]; then
-    info "نصب وابستگی‌های Composer..."
-    (cd "$INSTALL_DIR" && composer install --no-dev --no-interaction --optimize-autoloader) || warn "composer با خطا مواجه شد"
+    info "Installing Composer dependencies..."
+    (cd "$INSTALL_DIR" && composer install --no-dev --no-interaction --optimize-autoloader) || warn "composer install failed"
   fi
 
   # --- اعمال پچ ---
-  info "اعمال پچ mirza_vali..."
+  info "Applying mirza_vali patch..."
   apply_patch_files "$INSTALL_DIR"
   write_config "$INSTALL_DIR"
   echo "$(version_of "$SCRIPT_DIR")" > "$INSTALL_DIR/VERSION"
   echo "$PROJECT_NAME" > "$INSTALL_DIR/PROJECT_NAME"
-  ok "پچ اعمال شد."
+  ok "Patch applied."
 
   # --- جداول ---
-  info "ساخت جداول دیتابیس..."
+  info "Building database tables..."
   (cd "$INSTALL_DIR" && php table.php) || true
   if [[ -n "${BALE_PROVIDER_TOKEN:-}" && "$BALE_PROVIDER_TOKEN" != "0" ]]; then
     mysql -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -e \
       "UPDATE PaySetting SET ValuePay='${BALE_PROVIDER_TOKEN}' WHERE NamePay='merchant_balepay';" 2>/dev/null || true
     mysql -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -e \
       "UPDATE PaySetting SET ValuePay='onbalepay' WHERE NamePay='balepaystatus';" 2>/dev/null || true
-    ok "توکن بله‌پی در دیتابیس ثبت و روشن شد."
+    ok "Bale Pay token saved and enabled in database."
   fi
   chown -R www-data:www-data "$INSTALL_DIR" 2>/dev/null || chown -R nginx:nginx "$INSTALL_DIR" 2>/dev/null || true
 
   # --- Nginx ---
-  info "پیکربندی Nginx..."
+  info "Configuring Nginx..."
   cat > "/etc/nginx/sites-available/${NGINX_SITE}" <<EOF
 server {
     listen 80;
@@ -341,7 +343,7 @@ EOF
   ln -sf "/etc/nginx/sites-available/${NGINX_SITE}" "/etc/nginx/sites-enabled/${NGINX_SITE}"
   rm -f /etc/nginx/sites-enabled/default
   nginx -t && systemctl reload nginx
-  ok "Nginx آماده است."
+  ok "Nginx ready."
 
   # --- دامنه / تونل ---
   setup_connectivity
@@ -351,10 +353,10 @@ EOF
 
   save_state
   echo ""
-  ok "نصب کامل شد — $PROJECT_NAME v$(version_of "$INSTALL_DIR")"
-  echo "  مسیر:  $INSTALL_DIR"
-  echo "  دامنه: https://${DOMAIN:-YOUR_DOMAIN}"
-  echo "  دیتابیس: $DB_NAME / $DB_USER / $DB_PASS"
+  ok "Install complete — $PROJECT_NAME v$(version_of "$INSTALL_DIR")"
+  echo "  Path:   $INSTALL_DIR"
+  echo "  URL:    https://${DOMAIN:-YOUR_DOMAIN}"
+  echo "  DB:     $DB_NAME / $DB_USER / $DB_PASS"
   echo ""
 }
 
@@ -374,7 +376,7 @@ apply_patch_files() {
       latest_zip="$(ls -1t ${ZIP_DROP_DIR:-/home}/mirza_vali*.zip 2>/dev/null | head -1 || true)"
     fi
     if [[ -n "$latest_zip" && -f "$latest_zip" ]]; then
-      info "استفاده از zip محلی برای پچ: $latest_zip"
+      info "Using local zip for patch: $latest_zip"
       local ztmp
       ztmp="$(mktemp -d)"
       command -v unzip >/dev/null 2>&1 || apt-get install -y unzip >/dev/null 2>&1 || true
@@ -390,15 +392,15 @@ apply_patch_files() {
   fi
 
   if [[ -z "$src_patch" || ! -d "$src_patch" ]]; then
-    info "دانلود فایل‌های پچ از گیت‌هاب..."
+    info "Downloading patch files from GitHub..."
     local tmp
     tmp="$(mktemp -d)"
     if git clone --depth 1 --branch "$GITHUB_BRANCH" "$GITHUB_REPO" "$tmp/repo" 2>/dev/null; then
       src_patch="$tmp/repo/patch"
       export _MIRZA_ZIP_TMP="$tmp"
     else
-      err "نتوانست از گیت‌هاب کلون کند: $GITHUB_REPO"
-      err "zip را در /home بگذارید یا آدرس ریپو را درست کنید."
+      err "Could not clone from GitHub: $GITHUB_REPO"
+      err "Place a zip in /home or fix the repo URL."
       exit 1
     fi
   fi
@@ -407,7 +409,7 @@ apply_patch_files() {
     if [[ -f "${src_patch}/${f}" ]]; then
       cp -f "${src_patch}/${f}" "${target}/${f}"
     else
-      warn "فایل پچ یافت نشد: $f"
+      warn "Patch file missing: $f"
     fi
   done
 }
@@ -491,7 +493,7 @@ CFGEOF
 
 setup_connectivity() {
   if [[ "$DOMAIN_MODE" == "2" ]]; then
-    info "راه‌اندازی تونل Cloudflare..."
+    info "Setting up Cloudflare tunnel..."
     if ! command -v cloudflared >/dev/null 2>&1; then
       curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
         -o /usr/local/bin/cloudflared
@@ -568,7 +570,7 @@ SERVICEEOF
     systemctl daemon-reload
     systemctl enable --now "${SERVICE_NAME}.service"
 
-    info "منتظر تونل (حداکثر ۲۵ ثانیه)..."
+    info "Waiting for tunnel (up to 25s)..."
     DOMAIN=""
     for i in $(seq 1 25); do
       DOMAIN="$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' /var/log/${PROJECT_NAME}-cloudflared.log 2>/dev/null | head -1 | sed 's|https://||')"
@@ -576,24 +578,24 @@ SERVICEEOF
       sleep 1
     done
     if [[ -z "$DOMAIN" ]]; then
-      warn "آدرس تونل پیدا نشد. وضعیت: systemctl status ${SERVICE_NAME}"
+      warn "Tunnel URL not found. Check: systemctl status ${SERVICE_NAME}"
     else
-      ok "تونل فعال: https://$DOMAIN"
+      ok "Tunnel active: https://$DOMAIN"
       sed -i "s|domainhosts = 'PENDING'|domainhosts = '${DOMAIN}'|; s|{{DOMAIN}}|${DOMAIN}|g" "${INSTALL_DIR}/config.php" || true
     fi
   else
-    info "دامنه شما: $DOMAIN — DNS را به IP سرور وصل کنید و SSL بگیرید:"
+    info "Your domain: $DOMAIN — point DNS to this server and get SSL:"
     echo "  certbot --nginx -d $DOMAIN"
   fi
 }
 
 register_webhooks() {
   if [[ "$DOMAIN_MODE" == "2" ]]; then
-    info "وبهوک توسط سرویس تونل ثبت می‌شود."
+    info "Webhooks will be registered by the tunnel service."
     return 0
   fi
   if [[ -z "${DOMAIN:-}" ]]; then
-    warn "دامنه خالی است — وبهوک ثبت نشد."
+    warn "Domain is empty — webhooks not registered."
     return 0
   fi
   if [[ "$ENABLE_TELEGRAM" == "true" ]]; then
@@ -615,27 +617,27 @@ register_webhooks() {
 # ===========================================================================
 do_update() {
   echo ""
-  echo -e "${BOLD}═══ آپدیت mirza_vali (آخرین نسخه) ═══${NC}"
+  echo -e "${BOLD}=== Update mirza_vali (latest) ===${NC}"
   echo ""
   load_state
 
   if [[ -z "${INSTALL_DIR:-}" || ! -d "${INSTALL_DIR:-}" ]]; then
-    err "نصب فعالی پیدا نشد. اول گزینه نصب را بزنید."
+    err "No active install found. Run Install first."
     return 1
   fi
 
   local current newv
   current="$(version_of "$INSTALL_DIR")"
-  info "نسخه فعلی روی سرور: v${current}"
+  info "Current version on server: v${current}"
 
   # بک‌آپ فایل‌های حیاتی
   local bak="${INSTALL_DIR}-backup-$(date +%Y%m%d%H%M%S)"
-  info "بک‌آپ..."
+  info "Creating backup..."
   mkdir -p "$bak"
   for f in config.php botapi.php function.php index.php admin.php keyboard.php table.php VERSION; do
     [[ -f "${INSTALL_DIR}/${f}" ]] && cp -a "${INSTALL_DIR}/${f}" "${bak}/" || true
   done
-  ok "بک‌آپ: $bak"
+  ok "Backup: $bak"
 
   local tmp src_patch=""
   tmp="$(mktemp -d)"
@@ -647,8 +649,8 @@ do_update() {
   fi
 
   if [[ -n "$latest_zip" && -f "$latest_zip" ]]; then
-    info "یافت شد zip محلی: $latest_zip"
-    info "استخراج و اعمال به‌عنوان منبع آپدیت..."
+    info "Found local zip: $latest_zip"
+    info "Extracting and using as update source..."
     mkdir -p "$tmp/zipout"
     if command -v unzip >/dev/null 2>&1; then
       unzip -qo "$latest_zip" -d "$tmp/zipout"
@@ -672,32 +674,32 @@ do_update() {
 
   # اولویت ۲: کلون آخرین نسخه از گیت‌هاب
   if [[ -z "$src_patch" ]]; then
-    info "دریافت آخرین نسخه از GitHub: $GITHUB_REPO (شاخه $GITHUB_BRANCH)..."
+    info "Fetching latest from GitHub: $GITHUB_REPO (branch $GITHUB_BRANCH)..."
     if git clone --depth 1 --branch "$GITHUB_BRANCH" "$GITHUB_REPO" "$tmp/repo" 2>/dev/null; then
       src_patch="$tmp/repo/patch"
       [[ -f "$tmp/repo/VERSION" ]] && cp -f "$tmp/repo/VERSION" "$tmp/VERSION" || true
-      ok "آخرین نسخه از گیت‌هاب دریافت شد."
+      ok "Latest version fetched from GitHub."
     else
-      err "نه zip محلی پیدا شد و نه کلون از گیت‌هاب موفق بود."
-      err "zip را در ${ZIP_DROP_DIR}/ بگذارید (مثلاً mirza_vali_v1.2.0.zip) یا ریپو را روی گیت‌هاب پوش کنید."
+      err "No local zip found and GitHub clone failed."
+      err "Put a zip in ${ZIP_DROP_DIR}/ or push to GitHub."
       rm -rf "$tmp"
       return 1
     fi
   fi
 
   if [[ -z "$src_patch" || ! -d "$src_patch" ]]; then
-    err "پوشه patch در منبع آپدیت یافت نشد."
+    err "patch/ folder not found in update source."
     rm -rf "$tmp"
     return 1
   fi
 
-  info "اعمال فایل‌های پچ..."
+  info "Applying patch files..."
   for f in botapi.php function.php index.php admin.php keyboard.php table.php; do
     if [[ -f "${src_patch}/${f}" ]]; then
       cp -f "${src_patch}/${f}" "${INSTALL_DIR}/${f}"
       ok "  $f"
     else
-      warn "  موجود نیست: $f"
+      warn "  missing: $f"
     fi
   done
 
@@ -709,14 +711,14 @@ do_update() {
 
   chown -R www-data:www-data "$INSTALL_DIR" 2>/dev/null || true
 
-  info "همگام‌سازی جداول (بدون حذف داده)..."
+  info "Syncing database tables (no data loss)..."
   (cd "$INSTALL_DIR" && php table.php) 2>/dev/null || true
 
   newv="$(version_of "$INSTALL_DIR")"
   save_state
   rm -rf "$tmp"
-  ok "آپدیت انجام شد: v${current} → v${newv}"
-  info "در صورت نیاز از منوی ریست، وبهوک‌ها را دوباره ثبت کنید."
+  ok "Update done: v${current} -> v${newv}"
+  info "If needed, re-register webhooks from the Reset menu."
 }
 
 
@@ -725,54 +727,54 @@ do_update() {
 # ===========================================================================
 do_reset() {
   echo ""
-  echo -e "${BOLD}═══ ریست mirza_vali ═══${NC}"
+  echo -e "${BOLD}=== Reset mirza_vali ===${NC}"
   echo ""
   load_state
 
   if [[ -z "${INSTALL_DIR:-}" || ! -d "${INSTALL_DIR:-}" ]]; then
-    err "نصب فعالی پیدا نشد."
+    err "No active install found."
     return 1
   fi
 
-  echo "چه چیزی ریست شود؟"
-  echo "  1) فقط ثبت مجدد وبهوک‌ها"
-  echo "  2) ری‌استارت سرویس تونل + ثبت وبهوک"
-  echo "  3) پاک کردن step کاربران (گیرکردن منو) — فقط فیلد step"
-  echo "  0) انصراف"
+  echo "What should be reset?"
+  echo "  1) Re-register webhooks only"
+  echo "  2) Restart tunnel service + webhooks"
+  echo "  3) Clear user steps (stuck menus) — step field only"
+  echo "  0) Cancel"
   local choice
-  read -rp "انتخاب: " choice
+  read -rp "Choice: " choice
 
   case "$choice" in
     1)
       DOMAIN_MODE="${DOMAIN_MODE:-1}"
       register_webhooks
-      ok "وبهوک‌ها دوباره ثبت شدند."
+      ok "Webhooks re-registered."
       ;;
     2)
       if systemctl list-unit-files | grep -q "${SERVICE_NAME}"; then
         systemctl restart "${SERVICE_NAME}" || true
-        ok "سرویس تونل ری‌استارت شد."
+        ok "Tunnel service restarted."
         sleep 5
         DOMAIN="$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' /var/log/${PROJECT_NAME}-cloudflared.log 2>/dev/null | head -1 | sed 's|https://||' || true)"
         if [[ -n "$DOMAIN" ]]; then
           sed -i "s|\$domainhosts = '.*';|\$domainhosts = '${DOMAIN}';|" "${INSTALL_DIR}/config.php" || true
-          ok "دامنه تونل جدید: https://$DOMAIN"
+          ok "New tunnel URL: https://$DOMAIN"
         fi
       else
-        warn "سرویس تونل نصب نیست (احتمالاً از دامنه شخصی استفاده می‌کنید)."
+        warn "Tunnel service not installed (you may be using your own domain)."
         register_webhooks
       fi
       ;;
     3)
       if [[ -n "${DB_NAME:-}" && -n "${DB_USER:-}" && -n "${DB_PASS:-}" ]]; then
         mysql -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" -e "UPDATE user SET step='home' WHERE step NOT IN ('home','none','');" 2>/dev/null \
-          && ok "step کاربران ریست شد." \
-          || err "خطا در اتصال به دیتابیس."
+          && ok "User steps reset." \
+          || err "Database connection error."
       else
-        err "اطلاعات دیتابیس در state موجود نیست."
+        err "Database credentials not found in state file."
       fi
       ;;
-    *) info "انصراف." ;;
+    *) info "Cancelled." ;;
   esac
 }
 
@@ -781,19 +783,19 @@ do_reset() {
 # ===========================================================================
 do_remove() {
   echo ""
-  echo -e "${BOLD}${RED}═══ حذف کامل mirza_vali ═══${NC}"
+  echo -e "${BOLD}${RED}=== Full remove mirza_vali ===${NC}"
   echo ""
   load_state
 
-  warn "این کار غیرقابل بازگشت است و شامل موارد زیر می‌شود:"
-  echo "  • پوشه نصب: ${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
-  echo "  • دیتابیس:  ${DB_NAME:-mirza_vali}"
-  echo "  • سرویس تونل و nginx site"
-  echo "  • فایل وضعیت در $STATE_DIR"
+  warn "This cannot be undone. It will remove:"
+  echo "  - Install folder: ${INSTALL_DIR:-$DEFAULT_INSTALL_DIR}"
+  echo "  - Database: ${DB_NAME:-mirza_vali}"
+  echo "  - Tunnel service and nginx site"
+  echo "  - State files in $STATE_DIR"
   echo ""
   local conf
-  conf="$(ask_yn 'مطمئن هستید؟ همه چیز پاک شود؟' 'n')"
-  [[ "$conf" != "true" ]] && { info "لغو شد."; return 0; }
+  conf="$(ask_yn 'Are you sure? Delete everything?' 'n')"
+  [[ "$conf" != "true" ]] && { info "Cancelled."; return 0; }
 
   # وبهوک را حذف کن
   if [[ "${ENABLE_TELEGRAM:-}" == "true" && -n "${TELEGRAM_TOKEN:-}" && "$TELEGRAM_TOKEN" != "disabled" ]]; then
@@ -816,7 +818,7 @@ do_remove() {
 
   if [[ -n "${INSTALL_DIR:-}" && -d "${INSTALL_DIR}" ]]; then
     rm -rf "${INSTALL_DIR}"
-    ok "پوشه نصب حذف شد."
+    ok "Install folder removed."
   fi
 
   if [[ -n "${DB_NAME:-}" ]]; then
@@ -824,11 +826,11 @@ do_remove() {
     if [[ -n "${DB_USER:-}" && "$DB_USER" != "root" ]]; then
       mysql -uroot -e "DROP USER IF EXISTS '${DB_USER}'@'localhost';" 2>/dev/null || true
     fi
-    ok "دیتابیس حذف شد."
+    ok "Database removed."
   fi
 
   rm -rf "$STATE_DIR"
-  ok "حذف کامل انجام شد."
+  ok "Full removal complete."
 }
 
 # ===========================================================================
@@ -836,49 +838,49 @@ do_remove() {
 # ===========================================================================
 do_status() {
   echo ""
-  echo -e "${BOLD}═══ وضعیت سیستم ═══${NC}"
+  echo -e "${BOLD}=== System status ===${NC}"
   echo ""
   load_state
 
-  echo "  پروژه:          $PROJECT_NAME"
-  echo "  نسخه اسکریپت:   v$(version_of "$SCRIPT_DIR")"
+  echo "  Project:         $PROJECT_NAME"
+  echo "  Script version:  v$(version_of "$SCRIPT_DIR")"
   if [[ -f "$STATE_FILE" ]]; then
-    echo "  نسخه نصب‌شده:   v${INSTALLED_VERSION:-?}"
-    echo "  مسیر:           ${INSTALL_DIR:-?}"
-    echo "  دامنه:          ${DOMAIN:-?}"
-    echo "  تلگرام:         ${ENABLE_TELEGRAM:-?}"
-    echo "  بله:            ${ENABLE_BALE:-?}"
-    echo "  دیتابیس:        ${DB_NAME:-?} / ${DB_USER:-?}"
-    echo "  تاریخ نصب:      ${INSTALLED_AT:-?}"
+    echo "  Installed ver:   v${INSTALLED_VERSION:-?}"
+    echo "  Path:            ${INSTALL_DIR:-?}"
+    echo "  Domain:          ${DOMAIN:-?}"
+    echo "  Telegram:        ${ENABLE_TELEGRAM:-?}"
+    echo "  Bale:            ${ENABLE_BALE:-?}"
+    echo "  Database:        ${DB_NAME:-?} / ${DB_USER:-?}"
+    echo "  Installed at:    ${INSTALLED_AT:-?}"
   else
-    echo "  نصب:            انجام نشده"
+    echo "  Install:         Not installed"
   fi
   echo ""
-  echo "  سرویس‌ها:"
+  echo "  Services:"
   if systemctl is-active --quiet nginx 2>/dev/null; then
-    ok "nginx فعال"
+    ok "nginx is active"
   else
-    warn "nginx غیرفعال یا نصب نیست"
+    warn "nginx inactive or not installed"
   fi
   if systemctl is-active --quiet mariadb 2>/dev/null || systemctl is-active --quiet mysql 2>/dev/null; then
-    ok "mariadb/mysql فعال"
+    ok "mariadb/mysql is active"
   else
-    warn "دیتابیس غیرفعال"
+    warn "database inactive"
   fi
   if systemctl list-unit-files 2>/dev/null | grep -q "${SERVICE_NAME}"; then
     if systemctl is-active --quiet "${SERVICE_NAME}"; then
-      ok "تونل Cloudflare فعال"
+      ok "Cloudflare tunnel is active"
     else
-      warn "تونل Cloudflare نصب است ولی فعال نیست"
+      warn "Cloudflare tunnel installed but inactive"
     fi
   else
-    info "تونل Cloudflare نصب نیست (احتمالاً دامنه شخصی)"
+    info "Cloudflare tunnel not installed (likely custom domain)"
   fi
   echo ""
 }
 
 # ===========================================================================
-#  حلقه منو
+#  Main loop
 # ===========================================================================
 main() {
   need_root
@@ -897,20 +899,20 @@ main() {
     show_banner
     show_menu
     local choice
-    read -rp "  گزینه را انتخاب کنید: " choice
+    read -rp "  Select option: " choice
     case "$choice" in
       1) do_install; pause ;;
       2) do_update;  pause ;;
       3) do_reset;   pause ;;
       4) do_remove;  pause ;;
       5) do_status;  pause ;;
-      0|q|Q|خروج)
+      0|q|Q)
         echo ""
-        info "خروج از مدیریت. موفق باشید."
+        info "Exiting. Goodbye."
         exit 0
         ;;
       *)
-        warn "گزینه نامعتبر."
+        warn "Invalid option."
         sleep 1
         ;;
     esac

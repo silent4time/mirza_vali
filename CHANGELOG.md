@@ -1,5 +1,12 @@
 # mirza_vali — Changelog
 
+## v1.3.1 (2026-08-02)
+
+### English-only terminal UI
+- All menu text, prompts, and status messages are in English (fixes broken RTL display in many terminals)
+- Cleaner management panel banner box
+
+
 ## v1.3.0 (2026-08-02)
 
 ### نصب یک‌خطی بدون ورود به پوشه
@@ -9,6 +16,13 @@
 - فایل `install.sh` به‌عنوان میانبر همان کار را انجام می‌دهد
 
 # mirza_vali — Changelog
+
+## v1.3.1 (2026-08-02)
+
+### English-only terminal UI
+- All menu text, prompts, and status messages are in English (fixes broken RTL display in many terminals)
+- Cleaner management panel banner box
+
 
 ## v1.2.0 (2026-08-02)
 

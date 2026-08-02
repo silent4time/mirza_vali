@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| نسخه فعلی | **v1.3.0** |
+| نسخه فعلی | **v1.3.1** |
 | مسیر نصب پیش‌فرض | `/var/www/mirza_vali` |
 | پلتفرم‌ها | Telegram + Bale |
 
@@ -75,7 +75,7 @@ GITHUB_REPO="${GITHUB_REPO:-https://github.com/silent4time/mirza_vali.git}"
 cd mirza_vali   # همین پوشه پروژه
 git init
 git add .
-git commit -m "mirza_vali v1.1.0 — install menu + payment fixes"
+git commit -m "mirza_vali v1.3.0 — one-line install + payment fixes"
 git branch -M main
 git remote add origin https://github.com/silent4time/mirza_vali.git
 git push -u origin main
