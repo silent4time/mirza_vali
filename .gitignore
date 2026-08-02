@@ -1,6 +1,0 @@
-*.bak
-*~
-.DS_Store
-config.php
-.env
-vendor/
