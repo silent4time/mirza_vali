@@ -22,8 +22,6 @@ STATE_DIR="/etc/${PROJECT_NAME}"
 STATE_FILE="${STATE_DIR}/install.env"
 SERVICE_NAME="${PROJECT_NAME}-tunnel"
 NGINX_SITE="${PROJECT_NAME}"
-# مسیر پیش‌فرض قرار دادن zip روی سرور (شما zip را اینجا می‌گذارید)
-ZIP_DROP_DIR="${ZIP_DROP_DIR:-/home}"
 
 # رنگ‌ها
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
@@ -335,40 +333,15 @@ apply_patch_files() {
 
   if [[ "$HAS_LOCAL_PATCH" == "true" ]]; then
     src_patch="${SCRIPT_DIR}/patch"
-  fi
-
-  # اگر پچ محلی نبود، zip داخل /home را امتحان کن
-  if [[ -z "$src_patch" || ! -d "$src_patch" ]]; then
-    local latest_zip=""
-    if [[ -d "${ZIP_DROP_DIR:-/home}" ]]; then
-      latest_zip="$(ls -1t ${ZIP_DROP_DIR:-/home}/mirza_vali*.zip 2>/dev/null | head -1 || true)"
-    fi
-    if [[ -n "$latest_zip" && -f "$latest_zip" ]]; then
-      info "استفاده از zip محلی برای پچ: $latest_zip"
-      local ztmp
-      ztmp="$(mktemp -d)"
-      command -v unzip >/dev/null 2>&1 || apt-get install -y unzip >/dev/null 2>&1 || true
-      unzip -qo "$latest_zip" -d "$ztmp"
-      if [[ -d "$ztmp/patch" ]]; then
-        src_patch="$ztmp/patch"
-      else
-        src_patch="$(find "$ztmp" -type d -name patch 2>/dev/null | head -1 || true)"
-      fi
-      # نگه داشتن ztmp تا پایان کپی — با trap پاک نمی‌کنیم چون ساده است
-      export _MIRZA_ZIP_TMP="$ztmp"
-    fi
-  fi
-
-  if [[ -z "$src_patch" || ! -d "$src_patch" ]]; then
+  else
     info "دانلود فایل‌های پچ از گیت‌هاب..."
     local tmp
     tmp="$(mktemp -d)"
     if git clone --depth 1 --branch "$GITHUB_BRANCH" "$GITHUB_REPO" "$tmp/repo" 2>/dev/null; then
       src_patch="$tmp/repo/patch"
-      export _MIRZA_ZIP_TMP="$tmp"
     else
       err "نتوانست از گیت‌هاب کلون کند: $GITHUB_REPO"
-      err "zip را در /home بگذارید یا آدرس ریپو را درست کنید."
+      err "آدرس ریپو را در ابتدای manage.sh یا با متغیر GITHUB_REPO تنظیم کنید."
       exit 1
     fi
   fi
@@ -381,7 +354,6 @@ apply_patch_files() {
     fi
   done
 }
-
 
 write_config() {
   local target="$1"
@@ -585,7 +557,7 @@ register_webhooks() {
 # ===========================================================================
 do_update() {
   echo ""
-  echo -e "${BOLD}═══ آپدیت mirza_vali (آخرین نسخه) ═══${NC}"
+  echo -e "${BOLD}═══ آپدیت mirza_vali ═══${NC}"
   echo ""
   load_state
 
@@ -598,97 +570,47 @@ do_update() {
   current="$(version_of "$INSTALL_DIR")"
   info "نسخه فعلی روی سرور: v${current}"
 
-  # بک‌آپ فایل‌های حیاتی
+  # بک‌آپ
   local bak="${INSTALL_DIR}-backup-$(date +%Y%m%d%H%M%S)"
-  info "بک‌آپ..."
+  info "بک‌آپ از فایل‌های حیاتی..."
   mkdir -p "$bak"
   for f in config.php botapi.php function.php index.php admin.php keyboard.php table.php VERSION; do
     [[ -f "${INSTALL_DIR}/${f}" ]] && cp -a "${INSTALL_DIR}/${f}" "${bak}/" || true
   done
   ok "بک‌آپ: $bak"
 
-  local tmp src_patch=""
-  tmp="$(mktemp -d)"
-
-  # اولویت ۱: آخرین zip داخل ZIP_DROP_DIR (مثلاً /home/mirza_vali_v1.2.0.zip)
-  local latest_zip=""
-  if [[ -d "${ZIP_DROP_DIR}" ]]; then
-    latest_zip="$(ls -1t "${ZIP_DROP_DIR}"/mirza_vali*.zip 2>/dev/null | head -1 || true)"
-  fi
-
-  if [[ -n "$latest_zip" && -f "$latest_zip" ]]; then
-    info "یافت شد zip محلی: $latest_zip"
-    info "استخراج و اعمال به‌عنوان منبع آپدیت..."
-    mkdir -p "$tmp/zipout"
-    if command -v unzip >/dev/null 2>&1; then
-      unzip -qo "$latest_zip" -d "$tmp/zipout"
-    else
-      apt-get install -y unzip >/dev/null 2>&1 || true
-      unzip -qo "$latest_zip" -d "$tmp/zipout"
-    fi
-    # پیدا کردن پوشه‌ای که patch/ یا manage.sh دارد
-    if [[ -d "$tmp/zipout/patch" ]]; then
-      src_patch="$tmp/zipout/patch"
-      [[ -f "$tmp/zipout/VERSION" ]] && cp -f "$tmp/zipout/VERSION" "$tmp/VERSION" || true
-    else
-      local found
-      found="$(find "$tmp/zipout" -type d -name patch 2>/dev/null | head -1 || true)"
-      if [[ -n "$found" ]]; then
-        src_patch="$found"
-        [[ -f "$(dirname "$found")/VERSION" ]] && cp -f "$(dirname "$found")/VERSION" "$tmp/VERSION" || true
-      fi
-    fi
-  fi
-
-  # اولویت ۲: کلون آخرین نسخه از گیت‌هاب
-  if [[ -z "$src_patch" ]]; then
-    info "دریافت آخرین نسخه از GitHub: $GITHUB_REPO (شاخه $GITHUB_BRANCH)..."
-    if git clone --depth 1 --branch "$GITHUB_BRANCH" "$GITHUB_REPO" "$tmp/repo" 2>/dev/null; then
-      src_patch="$tmp/repo/patch"
-      [[ -f "$tmp/repo/VERSION" ]] && cp -f "$tmp/repo/VERSION" "$tmp/VERSION" || true
-      ok "آخرین نسخه از گیت‌هاب دریافت شد."
-    else
-      err "نه zip محلی پیدا شد و نه کلون از گیت‌هاب موفق بود."
-      err "zip را در ${ZIP_DROP_DIR}/ بگذارید (مثلاً mirza_vali_v1.2.0.zip) یا ریپو را روی گیت‌هاب پوش کنید."
-      rm -rf "$tmp"
+  # دریافت آخرین پچ
+  info "دریافت آخرین نسخه از گیت‌هاب / ریپوی محلی..."
+  if [[ "$HAS_LOCAL_PATCH" == "true" ]]; then
+    apply_patch_files "$INSTALL_DIR"
+    cp -f "${SCRIPT_DIR}/VERSION" "${INSTALL_DIR}/VERSION" 2>/dev/null || true
+  else
+    local tmp
+    tmp="$(mktemp -d)"
+    if ! git clone --depth 1 --branch "$GITHUB_BRANCH" "$GITHUB_REPO" "$tmp/repo"; then
+      err "کلون از گیت‌هاب ناموفق: $GITHUB_REPO"
       return 1
     fi
+    SCRIPT_DIR_BAK="$SCRIPT_DIR"
+    SCRIPT_DIR="$tmp/repo"
+    HAS_LOCAL_PATCH="true"
+    apply_patch_files "$INSTALL_DIR"
+    cp -f "${tmp}/repo/VERSION" "${INSTALL_DIR}/VERSION" 2>/dev/null || true
+    SCRIPT_DIR="$SCRIPT_DIR_BAK"
   fi
 
-  if [[ -z "$src_patch" || ! -d "$src_patch" ]]; then
-    err "پوشه patch در منبع آپدیت یافت نشد."
-    rm -rf "$tmp"
-    return 1
-  fi
-
-  info "اعمال فایل‌های پچ..."
-  for f in botapi.php function.php index.php admin.php keyboard.php table.php; do
-    if [[ -f "${src_patch}/${f}" ]]; then
-      cp -f "${src_patch}/${f}" "${INSTALL_DIR}/${f}"
-      ok "  $f"
-    else
-      warn "  موجود نیست: $f"
-    fi
-  done
-
-  if [[ -f "$tmp/VERSION" ]]; then
-    cp -f "$tmp/VERSION" "${INSTALL_DIR}/VERSION"
-  elif [[ -f "$(dirname "$src_patch")/VERSION" ]]; then
-    cp -f "$(dirname "$src_patch")/VERSION" "${INSTALL_DIR}/VERSION"
-  fi
-
+  # config را دست نزن — فقط پچ‌های کد
   chown -R www-data:www-data "$INSTALL_DIR" 2>/dev/null || true
 
+  # اجرای ایمن table.php برای ستون‌های جدید (بدون پاک کردن داده)
   info "همگام‌سازی جداول (بدون حذف داده)..."
   (cd "$INSTALL_DIR" && php table.php) 2>/dev/null || true
 
   newv="$(version_of "$INSTALL_DIR")"
   save_state
-  rm -rf "$tmp"
   ok "آپدیت انجام شد: v${current} → v${newv}"
-  info "در صورت نیاز از منوی ریست، وبهوک‌ها را دوباره ثبت کنید."
+  info "در صورت نیاز وبهوک‌ها را از منوی ریست دوباره ثبت کنید."
 }
-
 
 # ===========================================================================
 #  ۳) ریست

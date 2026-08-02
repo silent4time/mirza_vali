@@ -108,19 +108,6 @@ mirza_vali/
 
 ---
 
-## آپدیت روی سرور
-
-1. نسخه جدید را روی گیت‌هاب push کنید **یا** فایل `mirza_vali_vX.Y.Z.zip` را در `/home` بگذارید.
-2. روی سرور:
-```bash
-cd /var/www/mirza_vali   # یا مسیر manage در کلون
-sudo bash manage.sh update
-# یا از منو گزینه 2
-```
-اسکریپت به‌صورت خودکار **آخرین نسخه** را از zip محلی یا GitHub اعمال می‌کند.
-
----
-
 ## پیش‌نیاز سرور
 
 - Ubuntu/Debian
