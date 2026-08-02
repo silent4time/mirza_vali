@@ -1,5 +1,13 @@
 # mirza_vali — Changelog
 
+## v1.3.3 (2026-08-02)
+
+### Fix incomplete GitHub repo / double-clone crash
+- install.sh verifies patch/ exists after clone and shows a clear error if missing
+- manage.sh no longer deletes /opt/mirza_vali-src while running from it
+- If already inside the source tree, skips a second git clone
+
+
 ## v1.3.2 (2026-08-02)
 
 ### Interactive one-line install
@@ -25,6 +33,14 @@
 - فایل `install.sh` به‌عنوان میانبر همان کار را انجام می‌دهد
 
 # mirza_vali — Changelog
+
+## v1.3.3 (2026-08-02)
+
+### Fix incomplete GitHub repo / double-clone crash
+- install.sh verifies patch/ exists after clone and shows a clear error if missing
+- manage.sh no longer deletes /opt/mirza_vali-src while running from it
+- If already inside the source tree, skips a second git clone
+
 
 ## v1.3.2 (2026-08-02)
 

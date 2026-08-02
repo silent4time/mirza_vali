@@ -118,6 +118,8 @@ _bootstrap_source() {
   if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
     candidate="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || true)"
   fi
+
+  # Already running from a source tree that has patch/ — use it, do not re-clone
   if [[ -n "$candidate" && -d "${candidate}/patch" && -f "${candidate}/patch/botapi.php" ]]; then
     SCRIPT_DIR="$candidate"
     HAS_LOCAL_PATCH="true"
@@ -125,25 +127,47 @@ _bootstrap_source() {
     return 0
   fi
 
-  # No local patch tree: clone latest from GitHub into a fixed folder
-  HAS_LOCAL_PATCH="false"
+  # Running from a partial tree (manage.sh only, no patch yet)
+  if [[ -n "$candidate" && -f "${candidate}/manage.sh" ]]; then
+    SCRIPT_DIR="$candidate"
+    if [[ -d "${candidate}/patch" && -f "${candidate}/patch/botapi.php" ]]; then
+      HAS_LOCAL_PATCH="true"
+    else
+      HAS_LOCAL_PATCH="false"
+      warn "Folder patch/ is missing in $candidate"
+      warn "Upload the full 'patch' folder to GitHub (botapi.php, index.php, ...)."
+    fi
+    cd "$SCRIPT_DIR" || true
+    return 0
+  fi
+
+  # Fresh run: clone into /opt (never delete the directory we are running from)
   local cache="/opt/${PROJECT_NAME}-src"
+  local cwd
+  cwd="$(pwd -P 2>/dev/null || pwd)"
   info "Downloading latest version from GitHub..."
   command -v git >/dev/null 2>&1 || { apt-get update -y >/dev/null 2>&1; apt-get install -y git >/dev/null 2>&1; }
-  rm -rf "$cache"
   mkdir -p /opt
-  if git clone --depth 1 --branch "$GITHUB_BRANCH" "$GITHUB_REPO" "$cache" 2>/dev/null; then
-    SCRIPT_DIR="$cache"
-    if [[ -d "${cache}/patch" ]]; then
-      HAS_LOCAL_PATCH="true"
-    fi
-    ok "Source ready: $cache"
-    cd "$SCRIPT_DIR" || true
-  else
-    err "GitHub clone failed: $GITHUB_REPO"
-    err "Make sure the repo is public or you have access."
-    exit 1
+  if [[ "$cwd" != "$cache" && "$candidate" != "$cache" ]]; then
+    rm -rf "$cache"
   fi
+  if [[ ! -d "$cache/.git" ]]; then
+    if ! git clone --depth 1 --branch "$GITHUB_BRANCH" "$GITHUB_REPO" "$cache"; then
+      err "GitHub clone failed: $GITHUB_REPO"
+      err "Make sure the repo is public and contains the patch/ folder."
+      exit 1
+    fi
+  fi
+  SCRIPT_DIR="$cache"
+  if [[ -d "${cache}/patch" && -f "${cache}/patch/botapi.php" ]]; then
+    HAS_LOCAL_PATCH="true"
+  else
+    HAS_LOCAL_PATCH="false"
+    warn "Clone OK but patch/ folder is missing on GitHub."
+    warn "Upload patch/ (all PHP files) via GitHub website, then run install again."
+  fi
+  ok "Source ready: $cache"
+  cd "$SCRIPT_DIR" || true
 }
 
 # If this process was started via "curl | bash", stdin is the script pipe
@@ -230,6 +254,13 @@ do_install() {
   echo ""
   echo -e "${BOLD}=== Install mirza_vali ===${NC}"
   echo ""
+
+  if [[ "$HAS_LOCAL_PATCH" != "true" ]]; then
+    err "Cannot install: patch/ folder not found."
+    err "On GitHub upload the full project including folder: patch/"
+    err "Required files: patch/botapi.php patch/index.php patch/function.php ..."
+    return 1
+  fi
 
   if [[ -f "$STATE_FILE" ]]; then
     warn "An existing installation was found."
