@@ -10,20 +10,28 @@
 
 ---
 
-## نصب سریع (یک‌خطی)
+## نصب سریع (یک‌خطی — بدون ورود به پوشه)
 
-بعد از ساخت ریپو در گیت‌هاب و آپلود این پروژه:
+روی سرور، در **هر مسیری** که هستید فقط این را بزنید:
 
 ```bash
-# روش ۱ — کلون و منوی مدیریت
-git clone https://github.com/silent4time/mirza_vali.git
-cd mirza_vali
-sudo bash manage.sh
+curl -sL https://raw.githubusercontent.com/silent4time/mirza_vali/main/manage.sh | sudo bash
 ```
 
+اسکریپت خودش آخرین نسخه را از گیت‌هاب می‌گیرد، منوی مدیریت را باز می‌کند.
+ربات در `/var/www/mirza_vali` نصب می‌شود (قابل تغییر در منوی نصب).
+
+نصب مستقیم بدون منو:
+
 ```bash
-# روش ۲ — مستقیم از raw (بعد از ست کردن آدرس ریپو داخل manage.sh)
-curl -sL https://raw.githubusercontent.com/silent4time/mirza_vali/main/manage.sh -o manage.sh
+curl -sL https://raw.githubusercontent.com/silent4time/mirza_vali/main/manage.sh | sudo bash -s install
+```
+
+روش اختیاری (کلون دستی):
+
+```bash
+git clone https://github.com/silent4time/mirza_vali.git
+cd mirza_vali
 sudo bash manage.sh
 ```
 
@@ -105,6 +113,19 @@ mirza_vali/
 - **جداسازی پلتفرم:** پیام/لینک پرداخت بر اساس بله یا تلگرام کاربر؛ استثنای بله‌پی برای کاربر تلگرام.
 
 جزئیات بیشتر: [CHANGELOG.md](CHANGELOG.md) و [README-BALE.md](README-BALE.md)
+
+---
+
+## آپدیت روی سرور
+
+1. نسخه جدید را روی گیت‌هاب push کنید **یا** فایل `mirza_vali_vX.Y.Z.zip` را در `/home` بگذارید.
+2. روی سرور:
+```bash
+cd /var/www/mirza_vali   # یا مسیر manage در کلون
+sudo bash manage.sh update
+# یا از منو گزینه 2
+```
+اسکریپت به‌صورت خودکار **آخرین نسخه** را از zip محلی یا GitHub اعمال می‌کند.
 
 ---
 
