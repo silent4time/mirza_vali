@@ -73,11 +73,11 @@ bash /opt/mirza_vali-src/manage.sh
 cd /tmp && rm -rf mvfix && mkdir mvfix && cd mvfix
 curl -fsSL -o latest.zip "https://raw.githubusercontent.com/silent4time/mirza_vali/main/mirza_vali-latest.zip"
 unzip -qo latest.zip && cat VERSION
-cp -f patch/*.php /var/www/mirza_vali/ 2>/dev/null || true
-cp -f patch/Eylan.php patch/function.php patch/index.php patch/apply_eylan_panels.php /var/www/mirza_vali/
-cp -f VERSION /var/www/mirza_vali/VERSION
-cp -f patch/version /var/www/mirza_vali/version
-cd /var/www/mirza_vali && php apply_eylan_panels.php
+cp -f patch/*.php /home/mirza_vali/ 2>/dev/null || true
+cp -f patch/Eylan.php patch/function.php patch/index.php patch/apply_eylan_panels.php /home/mirza_vali/
+cp -f VERSION /home/mirza_vali/VERSION
+cp -f patch/version /home/mirza_vali/version
+cd /home/mirza_vali && php apply_eylan_panels.php
 ```
 
 ---

@@ -78,7 +78,7 @@
       </div>
       <div>
         <label>مسیر نصب</label>
-        <input id="installDir" value="/var/www/mirza_vali" />
+        <input id="installDir" value="/home/mirza_vali" />
       </div>
     </div>
     <div class="row">
@@ -128,10 +128,10 @@
 
   <div class="card">
     <h2>۴) عیب‌یابی سریع</h2>
-    <pre>php -r 'require "/var/www/mirza_vali/config.php"; echo "DB_OK\n";'
+    <pre>php -r 'require "/home/mirza_vali/config.php"; echo "DB_OK\n";'
 curl -I https://YOUR_DOMAIN/
-cd /var/www/mirza_vali && php table.php
-tail -30 /var/www/mirza_vali/error_log</pre>
+cd /home/mirza_vali && php table.php
+tail -30 /home/mirza_vali/error_log</pre>
     <ul>
       <li>اگر جدول نبود: <code style="padding:4px 8px">php table.php</code></li>
       <li>اگر PDO خطا داد: <code style="padding:4px 8px">apt install php-mysql php8.4-mysql && systemctl restart apache2</code></li>
@@ -167,7 +167,7 @@ function buildNotes(){
   const text = [
     'mirza_vali install notes',
     'Domain: ' + (g('domain')||'(empty)'),
-    'Path: ' + (g('installDir')||'/var/www/mirza_vali'),
+    'Path: ' + (g('installDir')||'/home/mirza_vali'),
     'DB: ' + (g('dbName')||'') + ' / ' + (g('dbUser')||''),
     'Telegram token: ' + (g('tgToken')||''),
     'Telegram admin: ' + (g('tgAdmin')||''),
