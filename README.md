@@ -2,7 +2,7 @@
 
 ربات فروش و مدیریت اشتراک **VPN** برای **تلگرام + بله**
 
-**نسخه فعلی: 1.8.37**
+**نسخه فعلی: 1.8.38**
 
 ---
 
@@ -93,7 +93,7 @@ cd /opt/mirza_vali-src && bash manage.sh
 
 ```bash
 cd /tmp && rm -rf mvfix && mkdir mvfix && cd mvfix
-unzip -qo /root/mirza_vali_v1.8.37.zip
+unzip -qo /root/mirza_vali_v1.8.38.zip
 ls -la
 unzip -qo mirza_vali-latest.zip
 ls -la patch/Eylan.php VERSION manage.sh
