@@ -29,9 +29,9 @@ mkdir -p "$WORK"
 ZIP_FILE="$WORK/mirza_vali-latest.zip"
 
 # Try github.com/raw first, then raw.githubusercontent.com
-if ! curl -fsSL --connect-timeout 30 -o "$ZIP_FILE" "$REPO_ZIP_GITHUB"; then
+if ! curl -fsSL --connect-timeout 15 --max-time 180 --retry 2 -o "$ZIP_FILE" "$REPO_ZIP_GITHUB"; then
   echo "[*] Retry with raw.githubusercontent.com ..."
-  if ! curl -fsSL --connect-timeout 30 -o "$ZIP_FILE" "$REPO_ZIP_RAW"; then
+  if ! curl -fsSL --connect-timeout 15 --max-time 180 --retry 2 -o "$ZIP_FILE" "$REPO_ZIP_RAW"; then
     echo "[x] ERROR: Could not download mirza_vali-latest.zip"
     echo "    Upload this file to the root of your GitHub repo:"
     echo "    https://github.com/silent4time/mirza_vali"
