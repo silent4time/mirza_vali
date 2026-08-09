@@ -2,53 +2,69 @@
 
 ربات فروش و مدیریت اشتراک **VPN** برای **تلگرام + بله**
 
-نسخه فعلی: **1.8.23**
+**نسخه فعلی: 1.8.34**
+
+---
+
+## مسیرهای ثابت سرور
+
+| مورد | مسیر |
+|------|------|
+| نصب ربات | **`/home/mirza_vali`** |
+| سورس منوی مدیریت | `/opt/mirza_vali-src` |
+| تنظیمات نصب | `/etc/mirza_vali/install.env` |
+| دامنه ربات | `mirzavali.silentping.ir` |
+| پنل ایلان (نمایش به کاربر) | `http://panel.silentping.ir:8050` |
+| ریپو گیت‌هاب | [silent4time/mirza_vali](https://github.com/silent4time/mirza_vali) |
+
+> پیش‌فرض نصب **`/home/mirza_vali`** است (نه `/var/www/...`).  
+> پس از نصب/آپدیت، پوشه قدیمی `/var/www/mirza_vali` در صورت وجود پاک می‌شود.
 
 ---
 
 ## درباره پروژه
 
-`mirza_vali` یک فورک سفارشی بر پایه ربات متن‌باز **میرزا (mirzabot)** است که برای فروش سرویس‌های VPN، مدیریت پنل‌ها، کیف پول و درگاه‌های پرداخت طراحی شده و علاوه بر تلگرام، پیام‌رسان **بله** و درگاه **بله‌پی** را پشتیبانی می‌کند.
+`mirza_vali` فورک سفارشی بر پایه ربات متن‌باز **میرزا (mirzabot)** است؛ برای فروش VPN، مدیریت پنل، کیف پول و درگاه‌های پرداخت. علاوه بر تلگرام، **بله** و **بله‌پی** پشتیبانی می‌شود.
 
 ### تشکر از سازنده اصلی
 
-با سپاس ویژه از تیم و سازنده ربات اصلی **میرزا**:
+با سپاس از سازنده ربات اصلی **میرزا**:
 
-- ریپوی اصلی: [https://github.com/mahdiMGF2/mirzabot](https://github.com/mahdiMGF2/mirzabot)
-
-بدون زحمت ایشان این سفارشی‌سازی ممکن نبود.
+- ریپو: [https://github.com/mahdiMGF2/mirzabot](https://github.com/mahdiMGF2/mirzabot)
 
 ---
 
-## امکانات اصلی
+## امکانات
 
 | بخش | توضیح |
 |-----|--------|
-| تلگرام + بله | یک دیتابیس مشترک، وب‌هوک جدا |
-| بله‌پی | پرداخت از بله و راهنما از تلگرام به بله |
-| کارت‌به‌کارت | با حداقل/حداکثر و ارسال رسید |
-| پنل‌های متعدد | Marzban، X-UI، Hiddify، و ... |
+| تلگرام + بله | دیتابیس مشترک، وب‌هوک جدا |
+| بله‌پی | پرداخت در بله؛ از تلگرام لینک ربات بله |
+| کارت‌به‌کارت | حداقل/حداکثر، رسید، تأیید ادمین |
+| پنل‌ها | Marzban، X-UI، Hiddify، … |
 | **ایلان (Eylan)** | OpenVPN / L2TP / Cisco / WireGuard / Multi |
-| Apache + SSL | نصب بدون تداخل Nginx |
-| منوی مدیریت | نصب، آپدیت، حذف، ریست، SSL |
+| Apache + SSL | بدون تداخل با Nginx |
+| منوی مدیریت | نصب، آپدیت، حذف، ریست، SSL، وضعیت |
 
 ---
 
-## پنل ایلان — پروتکل‌ها
+## پنل ایلان
 
-برای هر پروتکل یک ردیف پنل با `type=eylan` و فیلد **inboundid**:
+برای هر پروتکل یک ردیف با `type=eylan` و **inboundid**:
 
-| inboundid | خروجی |
-|-----------|--------|
+| inboundid | خروجی ربات |
+|-----------|------------|
 | `openvpn` | فایل‌های `.ovpn` + صفحه کاربری |
-| `wireguard` | فایل `.conf` + QR کانفیگ |
+| `wireguard` | فایل `.conf` + QR (هر instance موجود در API) |
 | `l2tp` | سرور / یوزر / رمز / PSK |
 | `cisco` | سرور / یوزر / رمز |
 | `multi` | ترکیب موارد بالا |
 
-- آدرس نمایشی برای کاربر: `http://panel.silentping.ir:8050/...`
-- دامنه API داخلی (`mirzavalibot`) به کاربر نشان داده نمی‌شود.
-- PSK پیش‌فرض در صورت نبود از API: `123456`
+- لینک کاربر: همیشه `http://panel.silentping.ir:8050/...` (پورت **8050**)
+- دامنه API داخلی (`mirzavalibot`) به کاربر نشان داده **نمی‌شود**
+- PSK پیش‌فرض اگر از API نیاید: `123456`
+
+**WireGuard چند instance:** ربات از `wg1_files` و در صورت وجود از مسیرهای download هر instance کانفیگ می‌گیرد. اگر پنل برای `wg2` فقط در UI فایل بدهد و APIی `download_wg2` برابر ۴۰۴ باشد، فقط کانفیگ‌هایی که API برمی‌گرداند ارسال می‌شوند.
 
 ---
 
@@ -58,66 +74,80 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/silent4time/mirza_vali/main/install.sh)
 ```
 
-سپس از منو گزینه **1) Install** را بزنید.
+از منو: **1) Install** — مسیر پیش‌فرض: `/home/mirza_vali`
 
-### آپدیت
+---
+
+## آپدیت از منو
 
 ```bash
-bash /opt/mirza_vali-src/manage.sh
+cd /opt/mirza_vali-src && bash manage.sh
 # گزینه 2) Update
 ```
 
-یا دستی از آخرین زیپ:
+---
+
+## آپدیت دستی از زیپ (روی سرور)
+
+زیپ را مثلاً در `/root/` بگذارید، سپس:
 
 ```bash
 cd /tmp && rm -rf mvfix && mkdir mvfix && cd mvfix
-curl -fsSL -o latest.zip "https://raw.githubusercontent.com/silent4time/mirza_vali/main/mirza_vali-latest.zip"
-unzip -qo latest.zip && cat VERSION
+unzip -qo /root/mirza_vali_v1.8.34.zip
+ls -la
+unzip -qo mirza_vali-latest.zip
+ls -la patch/Eylan.php VERSION manage.sh
+
+# کپی پچ روی مسیر نصب
+cp -f patch/Eylan.php patch/function.php patch/index.php \
+      patch/apply_eylan_panels.php patch/eylan_diag.php patch/eylan_wg_diag.php \
+      /home/mirza_vali/ 2>/dev/null || true
 cp -f patch/*.php /home/mirza_vali/ 2>/dev/null || true
-cp -f patch/Eylan.php patch/function.php patch/index.php patch/apply_eylan_panels.php /home/mirza_vali/
 cp -f VERSION /home/mirza_vali/VERSION
-cp -f patch/version /home/mirza_vali/version
-cd /home/mirza_vali && php apply_eylan_panels.php
+cp -f manage.sh /opt/mirza_vali-src/manage.sh
+chmod +x /opt/mirza_vali-src/manage.sh
+
+cd /home/mirza_vali
+php apply_eylan_panels.php 2>/dev/null || true
+php -l Eylan.php && cat VERSION
 ```
+
+> همیشه بعد از `unzip` با `ls` مطمئن شوید فایل‌ها هستند؛ بعد `cp` بزنید.
 
 ---
 
-## ساختار ریپو (آپلود وب گیت‌هاب)
+## ساختار فایل‌های گیت‌هاب (آپلود وب)
 
-| فایل | نقش |
-|------|-----|
+| فایل در ریشه ریپو | نقش |
+|-------------------|-----|
 | `install.sh` | نصب‌کننده یک‌خطی |
-| `mirza_vali-latest.zip` | کد کامل آخرین نسخه |
-| `README.md` | همین مستند |
-| `generate-installer.html` | تولید دستور نصب |
+| `mirza_vali-latest.zip` | کل پروژه آخرین نسخه (manage + patch + VERSION + README) |
+| `README.md` | همین مستند — **با هر نسخه باید هم‌خوان باشد** |
+| `generate-installer.html` | صفحه تولید دستور نصب |
+
+داخل `mirza_vali-latest.zip`:
+
+- `manage.sh` — منوی مدیریت (مسیر پیش‌فرض `/home/mirza_vali`)
+- `VERSION` — شماره نسخه
+- `patch/` — کد PHP ربات (Eylan.php، function.php، index.php، …)
+- `README.md`، `install.sh`
 
 ---
 
-## دونیت / حمایت مالی
+## پشتیبانی / دونیت
 
-اگر از این پروژه استفاده می‌کنید و مایل به حمایت هستید:
-
-**TON / USDT (TON network):**
+**TON / USDT (TON):**
 
 ```text
-UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA  # ← آدرس ولت خود را اینجا بگذارید
+UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 ```
 
-یا لینک مستقیم (پس از قرار دادن آدرس واقعی):
-
-```text
-https://tonkeeper.com/transfer/YOUR_WALLET_ADDRESS
-```
+(آدرس ولت خود را جایگزین کنید.)
 
 ---
 
-## لایسنس و سلب مسئولیت
+## لایسنس
 
-این پروژه برای استفاده قانونی و مدیریت سرویس‌های خودتان است. مسئولیت پیکربندی سرور، دامنه، SSL و رعایت قوانین محلی با شماست.
+استفاده قانونی و مدیریت سرویس خودتان. مسئولیت سرور، دامنه، SSL و قوانین محلی با شماست.
 
----
-
-## تماس / ریپو
-
-- GitHub: [https://github.com/silent4time/mirza_vali](https://github.com/silent4time/mirza_vali)
-- دامنه نمونه پنل: `panel.silentping.ir`
+ریپو: [https://github.com/silent4time/mirza_vali](https://github.com/silent4time/mirza_vali)
