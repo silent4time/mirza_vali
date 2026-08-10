@@ -2,7 +2,7 @@
 
 ربات فروش و مدیریت اشتراک VPN برای **تلگرام** و **بله**
 
-**نسخه:** 1.8.42
+**نسخه:** 1.8.43
 
 ---
 
@@ -109,13 +109,11 @@ cd /opt/mirza_vali-src && bash manage.sh
 
 اگر از پروژه استفاده می‌کنید و مایل به حمایت هستید:
 
-**TON / USDT (شبکه TON):**
+**USDT / TON روی شبکه BEP20 (BSC):**
 
 ```text
-UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+0xa1a89602DDB47682091Af3Da1737672bd97f5669
 ```
-
-(آدرس ولت خود را جایگزین کنید.)
 
 ---
 
